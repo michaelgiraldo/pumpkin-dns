@@ -1,0 +1,129 @@
+############################################
+# OS: macOS
+############################################
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.apdisk
+
+############################################
+# Editors / IDEs
+############################################
+# JetBrains (IntelliJ / PyCharm / WebStorm etc.)
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
+# Vim / Emacs
+*~
+.*.swp
+.*.swo
+.#*
+
+############################################
+# Logs / PIDs / Temp
+############################################
+*.log
+*.log.*
+*.pid
+*.pid.lock
+*.seed
+*.tmp
+*.temp
+tmp/
+temp/
+
+############################################
+# Environment files
+############################################
+.env
+.env.*
+.envrc
+.direnv
+
+############################################
+# Archives and binaries
+############################################
+Archive/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.bz2
+*.7z
+*.rar
+*.dmg
+*.pkg
+
+############################################
+# Node / JavaScript
+############################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+############################################
+# Python
+############################################
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage/
+
+############################################
+# Build / Coverage / Caches
+############################################
+dist/
+build/
+out/
+.cache/
+.nyc_output/
+lib-cov/
+
+############################################
+# Xcode (common macOS dev)
+############################################
+DerivedData/
+xcuserdata/
+*.xcuserstate
