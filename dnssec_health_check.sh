@@ -338,44 +338,121 @@ emoji_from_flag(){
   [[ $1 -eq 1 ]] && printf '%s' "$OK" || printf '%s' "$NOTSET"
 }
 
+status_icon(){
+  case "$1" in
+    "$OK") echo "$OK";;
+    "$BAD") echo "$BAD";;
+    "$WARN") echo "$WARN";;
+    "$NOTSET") echo "$NOTSET";;
+    *) echo "$1";;
+  esac
+}
+
+pad_text(){
+  local text="$1" width="$2"
+  printf '%-*s' "$width" "$text"
+}
+
+pad_icon(){
+  # Subtracting one column keeps emoji alignment closest to the header spacing.
+  # Not perfect, but good enough—leave this at "- 1" unless you fully rework the layout.
+  local icon="$1" width="$2" display=2 pad
+  pad=$(( width - 1 ))
+  (( pad < 0 )) && pad=0
+  printf '%s%*s' "$icon" "$pad" ""
+}
+
+badge_from_status(){
+  local status="${1:-}"
+  case "$status" in
+    "$OK"*) printf '%s' "$OK";;
+    "$WARN"*) printf '%s' "$WARN";;
+    "$BAD"*) printf '%s' "$BAD";;
+    "$NOTSET"*) printf '%s' "$NOTSET";;
+    *) printf '%s' "$WARN";;
+  esac
+}
+
 render_authoritative_table(){
-  printf "  %-30s  DNSKEY  SOA  NS   A    AAAA  MX   SPF  DMARC  DKIM\n" "Nameserver"
+  local widths=(25 10 7 5 5 7 5 6 8 5)
+  local headers=("Nameserver" "DNSKEY" "SOA" "NS" "A" "AAAA" "MX" "SPF" "DMARC" "DKIM")
+
+  local line="  "
+  local idx
+  local last_header=$(( ${#headers[@]} - 1 ))
+  for idx in "${!headers[@]}"; do
+    line+="$(pad_text "${headers[idx]}" "${widths[idx]}")"
+    [[ $idx -ne $last_header ]] && line+="  "
+  done
+  printf '%s\n' "$line"
+
   if [[ ${#AUTH_ROWS[@]} -eq 0 ]]; then
     echo "  ${WARN} No authoritative data collected"
     return
   fi
-  local row ns
+
+  local row ns dnskey soa nsok a aaaa mx spf dmarc dkim
   for row in "${AUTH_ROWS[@]}"; do
     IFS='|' read -r ns dnskey soa nsok a aaaa mx spf dmarc dkim <<< "$row"
-    printf "  %-30s  %s    %s   %s   %s   %s    %s   %s    %s     %s\n" \
-      "$ns" \
-      "$( [[ $dnskey -eq 1 ]] && echo $OK || echo $BAD )" \
-      "$( [[ $soa -eq 1 ]] && echo $OK || echo $BAD )" \
-      "$( [[ $nsok -eq 1 ]] && echo $OK || echo $BAD )" \
-      "$( [[ $a -eq 1 ]] && echo $OK || echo $NOTSET )" \
-      "$( [[ $aaaa -eq 1 ]] && echo $OK || echo $NOTSET )" \
-      "$( [[ $mx -eq 1 ]] && echo $OK || echo $NOTSET )" \
-      "$( [[ $spf -eq 1 ]] && echo $OK || echo $NOTSET )" \
-      "$( [[ $dmarc -eq 1 ]] && echo $OK || echo $NOTSET )" \
-      "$( [[ $dkim -eq 1 ]] && echo $OK || echo $NOTSET )"
+
+    local cells=()
+    cells+=( "$(pad_text "$ns" "${widths[0]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $dnskey -eq 1 ]] && echo "$OK" || echo "$BAD")) "${widths[1]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $soa -eq 1 ]] && echo "$OK" || echo "$BAD")) "${widths[2]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $nsok -eq 1 ]] && echo "$OK" || echo "$BAD")) "${widths[3]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $a -eq 1 ]] && echo "$OK" || echo "$NOTSET")) "${widths[4]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $aaaa -eq 1 ]] && echo "$OK" || echo "$NOTSET")) "${widths[5]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $mx -eq 1 ]] && echo "$OK" || echo "$NOTSET")) "${widths[6]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $spf -eq 1 ]] && echo "$OK" || echo "$NOTSET")) "${widths[7]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $dmarc -eq 1 ]] && echo "$OK" || echo "$NOTSET")) "${widths[8]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $dkim -eq 1 ]] && echo "$OK" || echo "$NOTSET")) "${widths[9]}")" )
+
+    local row_str="  "
+    local last_cell=$(( ${#cells[@]} - 1 ))
+    for idx in "${!cells[@]}"; do
+      row_str+="${cells[idx]}"
+      [[ $idx -ne $last_cell ]] && row_str+="  "
+    done
+    printf '%s\n' "$row_str"
   done
 }
 
 render_resolver_table(){
-  printf "  %-15s  DS    DNSKEY  A(+ad)  A(+cd)\n" "Resolver"
+  local widths=(18 7 9 9 9)
+  local headers=("Resolver" "DS" "DNSKEY" "A(+ad)" "A(+cd)")
+
+  local line="  "
+  local idx
+  local last_header=$(( ${#headers[@]} - 1 ))
+  for idx in "${!headers[@]}"; do
+    line+="$(pad_text "${headers[idx]}" "${widths[idx]}")"
+    [[ $idx -ne $last_header ]] && line+="  "
+  done
+  printf '%s\n' "$line"
+
   if [[ ${#RESOLVER_ROWS[@]} -eq 0 ]]; then
     echo "  ${WARN} No resolver data collected"
     return
   fi
+
   local row r ds dk ad cd
   for row in "${RESOLVER_ROWS[@]}"; do
     IFS='|' read -r r ds dk ad cd <<< "$row"
-    printf "  %-15s  %s    %s      %s      %s\n" \
-      "$r" \
-      "$( [[ $ds -eq 1 ]] && echo $OK || echo $BAD )" \
-      "$( [[ $dk -eq 1 ]] && echo $OK || echo $BAD )" \
-      "$( [[ $ad -eq 1 ]] && echo $OK || echo $BAD )" \
-      "$( [[ $cd -eq 1 ]] && echo $OK || echo $BAD )"
+
+    local cells=()
+    cells+=( "$(pad_text "$r" "${widths[0]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $ds -eq 1 ]] && echo "$OK" || echo "$BAD")) "${widths[1]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $dk -eq 1 ]] && echo "$OK" || echo "$BAD")) "${widths[2]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $ad -eq 1 ]] && echo "$OK" || echo "$BAD")) "${widths[3]}")" )
+    cells+=( "$(pad_icon $(status_icon $([[ $cd -eq 1 ]] && echo "$OK" || echo "$BAD")) "${widths[4]}")" )
+
+    local row_str="  "
+    local last_cell=$(( ${#cells[@]} - 1 ))
+    for idx in "${!cells[@]}"; do
+      row_str+="${cells[idx]}"
+      [[ $idx -ne $last_cell ]] && row_str+="  "
+    done
+    printf '%s\n' "$row_str"
   done
 }
 
@@ -436,8 +513,8 @@ render_summary(){
   fi
 
   [[ -n "$MX_ACTUAL_PAIRS" ]] && mx_badge="$OK"
-  [[ "$SPF_STATUS" == "$OK"* ]] && spf_badge="$OK" || [[ "$SPF_STATUS" == "$WARN"* ]] && spf_badge="$WARN"
-  [[ "$DMARC_STATUS" == "$OK"* ]] && dmarc_badge="$OK" || [[ "$DMARC_STATUS" == "$WARN"* ]] && dmarc_badge="$WARN"
+  spf_badge="$(badge_from_status "$SPF_STATUS")"
+  dmarc_badge="$(badge_from_status "$DMARC_STATUS")"
 
   printf 'Summary: Delegation %s | DNSSEC(ad) %s | MX %s | SPF %s | DMARC %s\n' \
     "$deleg_badge" "$dnssec_badge" "$mx_badge" "$spf_badge" "$dmarc_badge"
@@ -473,14 +550,21 @@ report(){
   echo
   echo "• Authoritative nameservers"
   render_authoritative_table
-  if [[ -n "$SPF_VALUES$DMARC_VALUES$DKIM_VALUES" ]]; then
-    echo "  Email record values:"
-    render_email_values
-  fi
 
   echo
   echo "• Resolver validation"
   render_resolver_table
+
+  echo
+  echo "• Email TXT sanity"
+  echo "  SPF   : $SPF_STATUS"
+  echo "  DMARC : $DMARC_STATUS"
+
+  if [[ -n "$SPF_VALUES$DMARC_VALUES$DKIM_VALUES" ]]; then
+    echo
+    echo "• Email record values"
+    render_email_values
+  fi
 
   echo
   echo "• Parent DS"
@@ -505,11 +589,6 @@ report(){
     echo "  ${WARN} None"
   fi
 
-  echo
-  echo "• Email TXT sanity"
-  echo "  SPF   : $SPF_STATUS"
-  echo "  DMARC : $DMARC_STATUS"
-
   if [[ ${#MX_REPORT_AUTH[@]} -gt 0 ]]; then
     echo
     echo "• MX target resolution (authoritative)"
@@ -520,7 +599,7 @@ report(){
   fi
 
   echo
-  echo "Legend: $OK good  $WARN caution  $BAD failed  $NOTSET missing"
+  echo "Legend: OK=$OK  WARN=$WARN  FAIL=$BAD  --=$NOTSET"
 }
 
 # ----- main routine -----
